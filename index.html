@@ -1,327 +1,871 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="dark">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Вопрос/Ответ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#121212"/>
+  <title>Вопрос/Ответ — База для экзамена</title>
   
-  <!-- CDN: Markdown parser + fuzzy search -->
+  <!-- CDN: Markdown + Search -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.basic.min.js"></script>
   
   <style>
-    /* ===== ТЁМНАЯ ТЕМА + АДАПТИВ ===== */
+    /* ===== AURUMWIKI-INSPIRED DARK THEME ===== */
     :root {
-      --bg: #0d1117; --bg-soft: #161b22; --bg-hover: #21262d;
-      --text: #e6edf3; --text-dim: #8b949e; --border: #30363d;
-      --accent: #58a6ff; --accent-hover: #79c0ff; --code-bg: #161b22;
-      --shadow: 0 4px 12px rgba(0,0,0,0.3);
-      --radius: 12px; --transition: 0.2s ease;
+      --bg-body: #121212;
+      --bg-sidebar: #161616;
+      --bg-card: #1e1e1e;
+      --bg-card-hover: #252525;
+      --bg-element: #2a2a2a;
+      --bg-search: #1a1a1a;
+      
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0a0;
+      --text-muted: #666666;
+      
+      --accent: #4caf50;
+      --accent-hover: #66bb6a;
+      --accent-soft: rgba(76, 175, 80, 0.15);
+      --border: #333333;
+      
+      --transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+      --radius: 12px;
+      --shadow: 0 4px 20px rgba(0,0,0,0.4);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg); color: var(--text);
-      line-height: 1.6; -webkit-font-smoothing: antialiased;
-    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     
-    /* ===== HEADER + ПОИСК ===== */
-    .header {
-      position: sticky; top: 0; z-index: 100;
-      background: var(--bg-soft); border-bottom: 1px solid var(--border);
-      padding: clamp(0.75rem, 2vw, 1rem);
-      backdrop-filter: blur(10px);
+    body {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+      font-size: 16px;
+      line-height: 1.5;
     }
-    .search-wrap {
-      max-width: 720px; margin: 0 auto; position: relative;
+
+    /* ===== SVG ICONS ===== */
+    .icon {
+      width: 18px; height: 18px;
+      fill: none; stroke: currentColor;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+    .icon-lg { width: 28px; height: 28px; }
+    .icon-xl { width: 40px; height: 40px; }
+
+    /* ===== LANDING PAGE ===== */
+    #landing-page {
+      position: fixed; inset: 0;
+      background: var(--bg-body);
+      z-index: 1000;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      transition: opacity 0.4s ease, visibility 0.4s;
+      padding: 20px;
+    }
+    #landing-page.hidden {
+      opacity: 0; visibility: hidden; pointer-events: none;
+    }
+    .landing-content {
+      text-align: center; max-width: 480px; width: 100%;
+      animation: fadeInUp 0.6s ease;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: none; }
+    }
+    .landing-logo {
+      font-size: 36px; font-weight: 800; margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    .landing-logo span { color: var(--accent); }
+    .landing-desc {
+      color: var(--text-secondary); margin-bottom: 32px;
+      font-size: 1.05rem; line-height: 1.6;
+    }
+    .start-btn {
+      background: var(--accent); color: white; border: none;
+      padding: 14px 28px; font-size: 16px; font-weight: 600;
+      border-radius: 10px; cursor: pointer;
+      transition: var(--transition);
+      display: inline-flex; align-items: center; gap: 8px;
+      width: 100%; max-width: 320px; justify-content: center;
+    }
+    .start-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+    }
+    .start-btn:active { transform: translateY(0); }
+
+    /* ===== MAIN APP ===== */
+    #app-container {
+      display: flex; height: 100vh;
+      opacity: 0; transform: scale(0.99);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    #app-container.visible { opacity: 1; transform: scale(1); }
+
+    /* ===== SIDEBAR (Desktop) ===== */
+    .sidebar {
+      width: 260px; background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 20px 16px; flex-shrink: 0;
+    }
+    .sidebar-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 24px; font-weight: 700; font-size: 18px;
+      padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-header .logo-icon { color: var(--accent); }
+    
+    .nav-section { margin-bottom: 20px; }
+    .nav-title {
+      font-size: 11px; text-transform: uppercase;
+      color: var(--text-muted); letter-spacing: 0.8px;
+      margin-bottom: 10px; font-weight: 600; padding: 0 8px;
+    }
+    .nav-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; color: var(--text-secondary);
+      text-decoration: none; border-radius: 8px;
+      transition: var(--transition); font-size: 14px;
+      margin-bottom: 4px; cursor: pointer;
+    }
+    .nav-link:hover { background: var(--bg-card); color: var(--text-primary); }
+    .nav-link.active { background: var(--accent-soft); color: var(--accent); }
+    
+    .category-list { max-height: 200px; overflow-y: auto; }
+    .category-item {
+      padding: 6px 12px; font-size: 13px; color: var(--text-secondary);
+      cursor: pointer; border-radius: 6px; transition: var(--transition);
+    }
+    .category-item:hover, .category-item.active {
+      background: var(--bg-element); color: var(--text-primary);
+    }
+
+    /* ===== MOBILE MENU TOGGLE ===== */
+    .menu-toggle {
+      display: none; position: fixed; top: 12px; left: 12px;
+      z-index: 200; background: var(--bg-card); border: 1px solid var(--border);
+      padding: 8px; border-radius: 8px; cursor: pointer;
+    }
+    .menu-toggle.active { background: var(--accent); border-color: var(--accent); }
+
+    /* ===== MAIN CONTENT AREA ===== */
+    .main-area {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      padding: 20px; scroll-behavior: smooth;
+      position: relative;
+    }
+    .main-area::-webkit-scrollbar { width: 6px; }
+    .main-area::-webkit-scrollbar-track { background: transparent; }
+    .main-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ===== HEADER + SEARCH ===== */
+    .header-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; gap: 12px; flex-wrap: wrap;
+    }
+    .header-title h2 { font-size: 22px; font-weight: 700; }
+    .header-title p { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+    
+    .search-wrapper {
+      position: relative; width: 100%; max-width: 480px;
+      flex: 1; min-width: 200px;
     }
     .search-input {
-      width: 100%; padding: clamp(0.75rem, 2vw, 1rem) 1rem;
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: var(--radius); color: var(--text);
-      font-size: clamp(1rem, 2.5vw, 1.1rem);
-      transition: border-color var(--transition), box-shadow var(--transition);
+      width: 100%; background: var(--bg-search);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 16px 12px 42px; color: var(--text-primary);
+      font-size: 15px; outline: none; transition: var(--transition);
     }
     .search-input:focus {
-      outline: none; border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
     }
+    .search-icon-pos {
+      position: absolute; left: 14px; top: 50%;
+      transform: translateY(-50%); color: var(--text-muted);
+    }
+    .search-shortcut {
+      position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%); font-size: 11px;
+      color: var(--text-muted); background: var(--bg-element);
+      padding: 2px 6px; border-radius: 4px;
+    }
+
+    /* ===== SEARCH RESULTS DROPDOWN ===== */
     .search-results {
       position: absolute; top: 100%; left: 0; right: 0;
-      background: var(--bg-soft); border: 1px solid var(--border);
+      background: var(--bg-card); border: 1px solid var(--border);
       border-radius: 0 0 var(--radius) var(--radius);
-      margin-top: 4px; max-height: 60vh; overflow-y: auto;
-      box-shadow: var(--shadow); display: none; z-index: 101;
+      margin-top: 6px; max-height: 50vh; overflow-y: auto;
+      box-shadow: var(--shadow); z-index: 150;
+      display: none;
     }
-    .search-results.show { display: block; }
+    .search-results.show { display: block; animation: slideDown 0.2s ease; }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: none; }
+    }
     .result-item {
-      padding: clamp(0.75rem, 2vw, 1rem);
-      border-bottom: 1px solid var(--border);
-      cursor: pointer; transition: background var(--transition);
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: var(--transition);
     }
     .result-item:last-child { border-bottom: none; }
-    .result-item:hover, .result-item.active { background: var(--bg-hover); }
-    .result-title { font-weight: 600; margin-bottom: 0.25rem; }
-    .result-meta { font-size: 0.875rem; color: var(--text-dim); }
-    
-    /* ===== КОНТЕНТ ===== */
-    .container {
-      max-width: 800px; margin: 0 auto; padding: clamp(1rem, 4vw, 2rem);
+    .result-item:hover, .result-item.active {
+      background: var(--bg-element);
     }
-    .page-view { display: none; }
-    .page-view.active { display: block; animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .result-title {
+      font-weight: 600; font-size: 15px; margin-bottom: 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .result-title mark {
+      background: var(--accent-soft); color: var(--accent);
+      padding: 0 3px; border-radius: 3px; font-weight: 700;
+    }
+    .result-meta { font-size: 12px; color: var(--text-muted); }
+    .result-category {
+      display: inline-block; background: var(--accent-soft);
+      color: var(--accent); padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 600; margin-right: 6px;
+    }
+
+    /* ===== CONTENT GRID / LIST ===== */
+    .section-title {
+      font-size: 18px; font-weight: 700; margin: 24px 0 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-title::before {
+      content: ''; display: block; width: 3px; height: 18px;
+      background: var(--accent); border-radius: 2px;
+    }
+    .content-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .article-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+      cursor: pointer; transition: var(--transition);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .article-card:hover {
+      transform: translateY(-3px); border-color: var(--accent);
+      box-shadow: var(--shadow);
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+    .card-title { font-weight: 600; font-size: 16px; line-height: 1.4; }
+    .card-category {
+      font-size: 11px; background: var(--accent-soft); color: var(--accent);
+      padding: 3px 8px; border-radius: 4px; font-weight: 600; flex-shrink: 0;
+    }
+    .card-desc {
+      font-size: 14px; color: var(--text-secondary);
+      line-height: 1.4; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .card-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 12px; color: var(--text-muted); margin-top: 4px;
+    }
+
+    /* ===== ARTICLE VIEW ===== */
+    .page-view { display: none; animation: fadeIn 0.3s ease; }
+    .page-view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     
-    .page-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
-    .page-title { font-size: clamp(1.5rem, 5vw, 2rem); margin-bottom: 0.5rem; }
-    .page-meta { font-size: 0.9rem; color: var(--text-dim); display: flex; gap: 1rem; flex-wrap: wrap; }
+    .page-header {
+      margin-bottom: 20px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .page-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
+    .page-meta {
+      display: flex; gap: 12px; font-size: 13px; color: var(--text-muted);
+      flex-wrap: wrap; align-items: center;
+    }
+    .page-meta span { display: flex; align-items: center; gap: 4px; }
     
-    /* Markdown styles */
-    .markdown-body { font-size: clamp(1rem, 2.5vw, 1.05rem); }
-    .markdown-body h1, .markdown-body h2 { margin: 1.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
-    .markdown-body h3 { margin: 1.25rem 0 0.75rem; }
-    .markdown-body p { margin: 0.75rem 0; }
+    .page-actions {
+      display: flex; gap: 10px; margin: 16px 0; flex-wrap: wrap;
+    }
+    .btn {
+      background: var(--bg-element); color: var(--text-primary);
+      border: 1px solid var(--border); padding: 10px 16px;
+      border-radius: 8px; font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: var(--transition);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { background: var(--bg-card-hover); }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn:active { transform: scale(0.98); }
+    
+    .markdown-body {
+      font-size: 16px; line-height: 1.7; color: var(--text-primary);
+    }
+    .markdown-body h1, .markdown-body h2 {
+      font-size: 20px; margin: 24px 0 12px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .markdown-body h3 { font-size: 18px; margin: 20px 0 10px; }
+    .markdown-body p { margin: 12px 0; }
     .markdown-body a { color: var(--accent); text-decoration: none; }
     .markdown-body a:hover { text-decoration: underline; }
     .markdown-body code {
-      background: var(--code-bg); padding: 0.2em 0.4em;
-      border-radius: 4px; font-family: ui-monospace, monospace; font-size: 0.95em;
+      background: var(--bg-element); padding: 2px 6px;
+      border-radius: 4px; font-family: ui-monospace, monospace;
+      font-size: 0.95em;
     }
     .markdown-body pre {
-      background: var(--code-bg); border-radius: 8px;
-      padding: 1rem; overflow-x: auto; margin: 1rem 0;
-      border: 1px solid var(--border);
+      background: var(--bg-element); border-radius: 8px;
+      padding: 14px; overflow-x: auto; margin: 14px 0;
+      border: 1px solid var(--border); font-size: 14px;
     }
     .markdown-body pre code { background: none; padding: 0; }
     .markdown-body blockquote {
-      border-left: 3px solid var(--accent); padding-left: 1rem;
-      margin: 1rem 0; color: var(--text-dim);
+      border-left: 3px solid var(--accent); padding-left: 14px;
+      margin: 14px 0; color: var(--text-secondary);
+      background: var(--accent-soft); padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
     }
-    .markdown-body ul, .markdown-body ol { padding-left: 1.5rem; margin: 0.75rem 0; }
-    .markdown-body li { margin: 0.25rem 0; }
-    .markdown-body img { max-width: 100%; border-radius: 8px; margin: 0.5rem 0; }
-    .markdown-body table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    .markdown-body ul, .markdown-body ol {
+      padding-left: 24px; margin: 12px 0;
+    }
+    .markdown-body li { margin: 6px 0; }
+    .markdown-body img {
+      max-width: 100%; border-radius: 8px; margin: 10px 0;
+      border: 1px solid var(--border);
+    }
+    .markdown-body table {
+      width: 100%; border-collapse: collapse; margin: 14px 0;
+      font-size: 14px;
+    }
     .markdown-body th, .markdown-body td {
-      padding: 0.5rem 0.75rem; border: 1px solid var(--border);
+      padding: 10px 12px; border: 1px solid var(--border);
+      text-align: left;
     }
-    .markdown-body th { background: var(--bg-hover); }
-    
-    /* ===== СПИСОК СТАТЕЙ (главная) ===== */
-    .articles-list { display: grid; gap: 1rem; }
-    .article-card {
-      background: var(--bg-soft); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: clamp(1rem, 3vw, 1.25rem);
-      cursor: pointer; transition: transform var(--transition), border-color var(--transition);
+    .markdown-body th { background: var(--bg-element); }
+
+    /* ===== COPY BUTTON & TOAST ===== */
+    .copy-toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--accent); color: white;
+      padding: 12px 24px; border-radius: 10px;
+      font-weight: 500; box-shadow: var(--shadow);
+      z-index: 1000; transition: transform 0.3s ease;
+      display: flex; align-items: center; gap: 8px;
     }
-    .article-card:hover { transform: translateY(-2px); border-color: var(--accent); }
-    .article-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem; }
-    .article-desc { color: var(--text-dim); font-size: 0.95rem; margin-bottom: 0.75rem; }
-    .article-footer { display: flex; gap: 1rem; font-size: 0.85rem; color: var(--text-dim); flex-wrap: wrap; }
-    
-    /* ===== АДАПТИВ ===== */
-    @media (max-width: 640px) {
-      .header { padding: 0.75rem; }
-      .search-results { border-radius: 0 0 8px 8px; }
-      .page-meta { flex-direction: column; gap: 0.25rem; }
-      .article-footer { flex-direction: column; gap: 0.25rem; }
+    .copy-toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ===== EMPTY / LOADING STATES ===== */
+    .loading, .empty-state {
+      text-align: center; padding: 40px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state-icon {
+      font-size: 48px; margin-bottom: 16px; opacity: 0.6;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .sidebar {
+        position: fixed; top: 0; left: 0; height: 100%;
+        width: 280px; z-index: 180;
+        transform: translateX(-100%); transition: transform 0.3s ease;
+        box-shadow: var(--shadow);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .menu-toggle { display: flex; }
+      .main-area { padding: 70px 16px 20px; }
+      .header-bar { flex-direction: column; align-items: stretch; }
+      .search-wrapper { max-width: 100%; }
+      .content-grid { grid-template-columns: 1fr; }
+      .page-title { font-size: 22px; }
+      .markdown-body { font-size: 15px; }
     }
     
-    /* ===== СКРОЛЛБАР ===== */
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
-    
-    /* ===== ЗАГРУЗКА ===== */
-    .loading { text-align: center; padding: 3rem; color: var(--text-dim); }
-    .empty-state { text-align: center; padding: 3rem; color: var(--text-dim); }
+    @media (max-width: 480px) {
+      .landing-logo { font-size: 32px; }
+      .landing-desc { font-size: 1rem; }
+      .page-actions { flex-direction: column; }
+      .btn { width: 100%; justify-content: center; }
+    }
+
+    /* ===== UTILS ===== */
+    .hidden { display: none !important; }
+    .text-accent { color: var(--accent); }
+    .text-muted { color: var(--text-muted); }
+    .mt-2 { margin-top: 8px; }
+    .mb-2 { margin-bottom: 8px; }
   </style>
 </head>
 <body>
-  <header class="header">
-    <div class="search-wrap">
-      <input type="text" class="search-input" id="searchInput" placeholder="🔍 Поиск по вопросам и ответам..." autocomplete="off">
-      <div class="search-results" id="searchResults"></div>
-    </div>
-  </header>
 
-  <main class="container">
-    <!-- Главная: список статей -->
-    <div id="listView" class="page-view active">
-      <div id="articlesContainer" class="articles-list"></div>
-      <div id="loading" class="loading">Загрузка базы знаний...</div>
-      <div id="emptyState" class="empty-state" style="display:none">📭 Ничего не найдено. Добавьте .md файлы в репозиторий!</div>
+  <!-- 🚀 LANDING PAGE -->
+  <div id="landing-page">
+    <div class="landing-content">
+      <div class="landing-logo">Вопрос/<span>Ответ</span></div>
+      <p class="landing-desc">
+        База знаний для экзамена. Найди ответ за 3 секунды — просто начни вводить вопрос.
+      </p>
+      <button class="start-btn" onclick="enterSite()">
+        <svg class="icon" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        Начать
+      </button>
     </div>
+  </div>
+
+  <!-- 📱 MOBILE MENU TOGGLE -->
+  <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">
+    <svg class="icon" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+  </button>
+
+  <!-- 🖥️ MAIN APP -->
+  <div id="app-container">
     
-    <!-- Просмотр статьи -->
-    <div id="pageView" class="page-view">
-      <div class="page-header">
-        <h1 class="page-title" id="pageTitle"></h1>
-        <div class="page-meta">
-          <span id="pageCategory"></span>
-          <span id="pageDate"></span>
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <svg class="icon icon-lg logo-icon" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Вопрос/Ответ
+      </div>
+      
+      <div class="nav-section">
+        <div class="nav-title">Навигация</div>
+        <div class="nav-link active" onclick="showList()">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          Все вопросы
         </div>
       </div>
-      <article class="markdown-body" id="pageContent"></article>
-      <div style="margin-top:2rem; padding-top:1rem; border-top:1px solid var(--border)">
-        <button onclick="showList()" style="background:var(--bg-soft); color:var(--text); border:1px solid var(--border); padding:0.5rem 1rem; border-radius:6px; cursor:pointer">← Назад к списку</button>
+      
+      <div class="nav-section">
+        <div class="nav-title">Категории</div>
+        <div class="category-list" id="categoryList">
+          <!-- Заполняется динамически -->
+        </div>
       </div>
-    </div>
-  </main>
+      
+      <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border);">
+        <div class="nav-link" onclick="copyAll()">
+          <svg class="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          Скопировать всё
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-area" id="mainArea" onclick="closeSidebarOnOutsideClick(event)">
+      
+      <!-- HEADER -->
+      <header class="header-bar">
+        <div class="header-title">
+          <h2 id="headerTitle">Все вопросы</h2>
+          <p id="headerSub">Найдено: <span id="countBadge">0</span></p>
+        </div>
+        <div class="search-wrapper">
+          <svg class="icon search-icon-pos" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" class="search-input" id="searchInput" placeholder="Поиск по вопросу или ответу..." autocomplete="off">
+          <span class="search-shortcut">Ctrl+K</span>
+          <div class="search-results" id="searchResults"></div>
+        </div>
+      </header>
+
+      <!-- LIST VIEW -->
+      <div id="listView" class="page-view active">
+        <div id="loading" class="loading">⏳ Загрузка базы...</div>
+        <div id="emptyState" class="empty-state" style="display:none">
+          <div class="empty-state-icon">🔍</div>
+          <p>Ничего не найдено</p>
+          <p class="text-muted" style="font-size:14px;margin-top:8px">Попробуй другие ключевые слова</p>
+        </div>
+        <div id="articlesContainer" class="content-grid"></div>
+      </div>
+      
+      <!-- ARTICLE VIEW -->
+      <div id="pageView" class="page-view">
+        <div class="page-header">
+          <h1 class="page-title" id="pageTitle"></h1>
+          <div class="page-meta">
+            <span id="pageCategory"></span>
+            <span id="pageDate"></span>
+            <span id="pageSlug" class="text-muted" style="font-family:monospace"></span>
+          </div>
+        </div>
+        
+        <div class="page-actions">
+          <button class="btn btn-primary" onclick="copyPageContent()">
+            <svg class="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            Скопировать ответ
+          </button>
+          <button class="btn" onclick="showList()">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Назад к списку
+          </button>
+        </div>
+        
+        <article class="markdown-body" id="pageContent"></article>
+      </div>
+      
+    </main>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div class="copy-toast" id="copyToast">
+    <svg class="icon" viewBox="0 0 24 24" style="stroke:white"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toastText">Скопировано!</span>
+  </div>
 
   <script>
     // ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
-    let pages = [];
-    let fuse = null;
-    const listView = document.getElementById('listView');
-    const pageView = document.getElementById('pageView');
-    const articlesContainer = document.getElementById('articlesContainer');
-    const searchInput = document.getElementById('searchInput');
-    const searchResults = document.getElementById('searchResults');
-    
+    let pages = [], fuse = null, categories = new Set();
+    const basePath = (() => {
+      const path = window.location.pathname;
+      const repo = path.split('/')[1] || '';
+      return repo && !repo.includes('github.io') ? `/${repo}/` : '/';
+    })();
+
+    // ===== DOM ELEMENTS =====
+    const els = {
+      landing: document.getElementById('landing-page'),
+      app: document.getElementById('app-container'),
+      sidebar: document.getElementById('sidebar'),
+      menuToggle: document.getElementById('menuToggle'),
+      searchInput: document.getElementById('searchInput'),
+      searchResults: document.getElementById('searchResults'),
+      listView: document.getElementById('listView'),
+      pageView: document.getElementById('pageView'),
+      articlesContainer: document.getElementById('articlesContainer'),
+      categoryList: document.getElementById('categoryList'),
+      loading: document.getElementById('loading'),
+      emptyState: document.getElementById('emptyState'),
+      countBadge: document.getElementById('countBadge'),
+      headerTitle: document.getElementById('headerTitle'),
+      headerSub: document.getElementById('headerSub'),
+      // Page view
+      pageTitle: document.getElementById('pageTitle'),
+      pageCategory: document.getElementById('pageCategory'),
+      pageDate: document.getElementById('pageDate'),
+      pageSlug: document.getElementById('pageSlug'),
+      pageContent: document.getElementById('pageContent'),
+      // Toast
+      copyToast: document.getElementById('copyToast'),
+      toastText: document.getElementById('toastText')
+    };
+
     // ===== ИНИЦИАЛИЗАЦИЯ =====
     async function init() {
       try {
-        const res = await fetch('pages.json?' + Date.now()); // Кэш-бастинг
+        const res = await fetch(basePath + 'pages.json?' + Date.now());
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
         const data = await res.json();
         pages = data.pages || [];
         
-        // Инициализация Fuse.js для поиска
-        fuse = new Fuse(pages, {
-          keys: ['title', 'description', 'searchText', 'category'],
-          threshold: 0.3,
-          includeMatches: true,
-          minMatchCharLength: 2
+        // Сбор категорий
+        pages.forEach(p => {
+          if (p.category) categories.add(p.category);
+          // Подготовка текста для поиска
+          p.searchText = `${p.title} ${p.description} ${p.content.replace(/<[^>]*>/g, ' ')}`.toLowerCase();
         });
         
+        // Инициализация Fuse
+        fuse = new Fuse(pages, {
+          keys: ['title', 'description', 'searchText', 'category'],
+          threshold: 0.25,
+          minMatchCharLength: 2,
+          includeMatches: true
+        });
+        
+        renderCategories();
         renderList(pages);
         handleRoute();
         
+        // Фокус на поиск после загрузки
+        setTimeout(() => els.searchInput.focus(), 500);
+        
       } catch (err) {
-        console.error('Ошибка загрузки pages.json:', err);
-        document.getElementById('loading').textContent = '❌ Не удалось загрузить базу знаний';
+        console.error('❌ Ошибка:', err);
+        els.loading.innerHTML = `
+          <div style="color:#ff6b6b;margin-bottom:12px">❌ Не удалось загрузить базу</div>
+          <details style="font-size:13px;color:var(--text-muted);text-align:left">
+            <summary style="cursor:pointer">🔧 Как исправить?</summary>
+            <ol style="padding-left:18px;margin-top:8px;line-height:1.8">
+              <li>Проверь вкладку <b>Actions</b> в репозитории</li>
+              <li>Убедись, что <code>pages.json</code> есть в корне</li>
+              <li>Settings → Pages → ветка <code>main</code>, папка <code>/</code></li>
+              <li>Открой <a href="${basePath}pages.json" target="_blank" style="color:var(--accent)">${basePath}pages.json</a> — если 404, файл не задеплоился</li>
+            </ol>
+          </details>
+        `;
       }
     }
-    
+
+    // ===== РЕНДЕР КАТЕГОРИЙ =====
+    function renderCategories() {
+      els.categoryList.innerHTML = Array.from(categories).sort().map(cat => `
+        <div class="category-item" onclick="filterByCategory('${escapeHtml(cat)}')">
+          ${escapeHtml(cat)}
+        </div>
+      `).join('');
+    }
+
     // ===== РЕНДЕР СПИСКА =====
     function renderList(items) {
-      articlesContainer.innerHTML = '';
+      els.articlesContainer.innerHTML = '';
       
       if (items.length === 0) {
-        document.getElementById('emptyState').style.display = 'block';
+        els.emptyState.style.display = 'block';
+        els.countBadge.textContent = '0';
         return;
       }
-      document.getElementById('emptyState').style.display = 'none';
+      
+      els.emptyState.style.display = 'none';
+      els.countBadge.textContent = items.length;
       
       items.forEach(page => {
         const card = document.createElement('div');
         card.className = 'article-card';
         card.innerHTML = `
-          <div class="article-title">${escapeHtml(page.title)}</div>
-          <div class="article-desc">${escapeHtml(page.description)}</div>
-          <div class="article-footer">
-            <span>📁 ${escapeHtml(page.category)}</span>
-            <span>📅 ${new Date(page.date).toLocaleDateString('ru-RU')}</span>
+          <div class="card-header">
+            <div class="card-title">${escapeHtml(page.title)}</div>
+            ${page.category ? `<span class="card-category">${escapeHtml(page.category)}</span>` : ''}
+          </div>
+          <div class="card-desc">${escapeHtml(page.description)}</div>
+          <div class="card-footer">
+            <span>📅 ${formatDate(page.date)}</span>
+            <span class="text-accent">Открыть →</span>
           </div>
         `;
         card.onclick = () => openPage(page.slug);
-        articlesContainer.appendChild(card);
+        els.articlesContainer.appendChild(card);
       });
     }
-    
+
+    // ===== ФИЛЬТР ПО КАТЕГОРИИ =====
+    function filterByCategory(cat) {
+      const filtered = cat === 'all' ? pages : pages.filter(p => p.category === cat);
+      els.headerTitle.textContent = cat === 'all' ? 'Все вопросы' : cat;
+      renderList(filtered);
+      showList();
+      closeSidebar();
+    }
+
     // ===== ОТКРЫТИЕ СТРАНИЦЫ =====
     function openPage(slug) {
       const page = pages.find(p => p.slug === slug);
       if (!page) return;
       
-      document.getElementById('pageTitle').textContent = page.title;
-      document.getElementById('pageCategory').textContent = `📁 ${page.category}`;
-      document.getElementById('pageDate').textContent = `📅 ${new Date(page.date).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })}`;
-      document.getElementById('pageContent').innerHTML = page.content;
+      els.pageTitle.textContent = page.title;
+      els.pageCategory.innerHTML = page.category ? `📁 ${escapeHtml(page.category)}` : '';
+      els.pageDate.textContent = `📅 ${formatDate(page.date, true)}`;
+      els.pageSlug.textContent = `#${page.slug}`;
+      els.pageContent.innerHTML = page.content;
       
-      listView.classList.remove('active');
-      pageView.classList.add('active');
-      window.scrollTo(0, 0);
+      // Прокрутка наверх
+      els.mainArea.scrollTop = 0;
       
-      // Обновляем URL без перезагрузки
+      // Переключение вида
+      els.listView.classList.remove('active');
+      els.pageView.classList.add('active');
+      
+      // Обновление URL
       history.pushState({ slug }, '', `#${slug}`);
+      
+      // На мобилке — закрыть сайдбар
+      closeSidebar();
     }
-    
+
     // ===== ВОЗВРАТ К СПИСКУ =====
     function showList() {
-      pageView.classList.remove('active');
-      listView.classList.add('active');
+      els.pageView.classList.remove('active');
+      els.listView.classList.add('active');
+      els.headerTitle.textContent = 'Все вопросы';
+      els.headerSub.querySelector('span').textContent = pages.length;
       history.pushState({}, '', location.pathname);
-      searchInput.value = '';
-      searchResults.classList.remove('show');
+      els.searchInput.value = '';
+      els.searchResults.classList.remove('show');
     }
-    
+
     // ===== ПОИСК =====
-    searchInput.addEventListener('input', (e) => {
+    els.searchInput.addEventListener('input', (e) => {
       const query = e.target.value.trim();
       
       if (query.length < 2) {
-        searchResults.classList.remove('show');
+        els.searchResults.classList.remove('show');
         renderList(pages);
+        els.headerTitle.textContent = 'Все вопросы';
         return;
       }
       
-      const results = fuse.search(query).slice(0, 10);
+      const results = fuse.search(query).slice(0, 12);
       const items = results.map(r => r.item);
       
       // Рендер выпадающих результатов
-      searchResults.innerHTML = items.map(page => `
-        <div class="result-item" data-slug="${page.slug}">
-          <div class="result-title">${highlightMatch(page.title, query)}</div>
-          <div class="result-meta">📁 ${page.category} • ${page.description}</div>
-        </div>
-      `).join('');
+      els.searchResults.innerHTML = items.map(page => {
+        const title = highlightMatch(page.title, query);
+        return `
+          <div class="result-item" onclick="openPage('${page.slug}');els.searchResults.classList.remove('show');els.searchInput.blur()">
+            <div class="result-title">${page.category ? `<span class="result-category">${escapeHtml(page.category)}</span>` : ''}${title}</div>
+            <div class="result-meta">${escapeHtml(page.description)}</div>
+          </div>
+        `;
+      }).join('') || '<div class="result-item" style="cursor:default;color:var(--text-muted)">Ничего не найдено</div>';
       
-      searchResults.classList.add('show');
+      els.searchResults.classList.add('show');
       
-      // Клик по результату
-      searchResults.querySelectorAll('.result-item').forEach(item => {
-        item.onclick = () => {
-          openPage(item.dataset.slug);
-          searchResults.classList.remove('show');
-          searchInput.blur();
-        };
-      });
+      // Обновление заголовка
+      els.headerTitle.textContent = `Результаты: ${items.length}`;
+      els.headerSub.querySelector('span').textContent = items.length;
     });
-    
-    // Скрыть поиск при клике вне
+
+    // Скрытие поиска при клике вне
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.search-wrap')) {
-        searchResults.classList.remove('show');
+      if (!e.target.closest('.search-wrapper')) {
+        els.searchResults.classList.remove('show');
       }
     });
+
+    // ===== КОПИРОВАНИЕ =====
+    async function copyPageContent() {
+      const text = els.pageContent.innerText;
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('Ответ скопирован!');
+      } catch {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('Скопировано!');
+      }
+    }
     
+    async function copyAll() {
+      const allText = pages.map(p => `## ${p.title}\n\n${p.content.replace(/<[^>]*>/g, '')}`).join('\n\n---\n\n');
+      try {
+        await navigator.clipboard.writeText(allText);
+        showToast('Вся база скопирована!');
+      } catch {
+        showToast('Не удалось скопировать', 2500);
+      }
+    }
+    
+    function showToast(msg, duration = 1800) {
+      els.toastText.textContent = msg;
+      els.copyToast.classList.add('show');
+      setTimeout(() => els.copyToast.classList.remove('show'), duration);
+    }
+
     // ===== РОУТИНГ =====
     function handleRoute() {
       const slug = location.hash.slice(1);
       if (slug && pages.some(p => p.slug === slug)) {
         openPage(slug);
       } else {
-        document.getElementById('loading').style.display = 'none';
+        els.loading.style.display = 'none';
       }
     }
-    
     window.addEventListener('hashchange', handleRoute);
     window.addEventListener('popstate', handleRoute);
-    
+
+    // ===== SIDEBAR TOGGLE (MOBILE) =====
+    function toggleSidebar() {
+      els.sidebar.classList.toggle('open');
+      els.menuToggle.classList.toggle('active');
+    }
+    function closeSidebar() {
+      els.sidebar.classList.remove('open');
+      els.menuToggle.classList.remove('active');
+    }
+    function closeSidebarOnOutsideClick(e) {
+      if (window.innerWidth <= 900 && 
+          els.sidebar.classList.contains('open') && 
+          !e.target.closest('.sidebar') && 
+          !e.target.closest('.menu-toggle')) {
+        closeSidebar();
+      }
+    }
+
+    // ===== KEYBOARD SHORTCUTS =====
+    document.addEventListener('keydown', (e) => {
+      // Ctrl+K / Cmd+K — фокус на поиск
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        els.searchInput.focus();
+        els.searchInput.select();
+      }
+      // Escape — закрыть поиск / вернуться к списку
+      if (e.key === 'Escape') {
+        els.searchResults.classList.remove('show');
+        if (els.pageView.classList.contains('active')) {
+          showList();
+        }
+      }
+      // Стрелки в поиске
+      if (els.searchResults.classList.contains('show')) {
+        const items = els.searchResults.querySelectorAll('.result-item');
+        let active = els.searchResults.querySelector('.result-item.active');
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (active) {
+            active.classList.remove('active');
+            if (active.nextElementSibling) active.nextElementSibling.classList.add('active');
+          } else if (items[0]) items[0].classList.add('active');
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (active) {
+            active.classList.remove('active');
+            if (active.previousElementSibling) active.previousElementSibling.classList.add('active');
+          }
+        }
+        if (e.key === 'Enter' && active) {
+          e.preventDefault();
+          active.click();
+        }
+      }
+    });
+
     // ===== УТИЛИТЫ =====
     function escapeHtml(str) {
+      if (!str) return '';
       const div = document.createElement('div');
       div.textContent = str;
       return div.innerHTML;
     }
     
     function highlightMatch(text, query) {
-      const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-      return text.replace(regex, '<mark style="background:rgba(88,166,255,0.3); padding:0 2px; border-radius:2px">$1</mark>');
+      const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(${safe})`, 'gi');
+      return text.replace(regex, '<mark>$1</mark>');
     }
     
+    function formatDate(dateStr, full = false) {
+      const d = new Date(dateStr);
+      if (full) {
+        return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+      }
+      return d.toLocaleDateString('ru-RU');
+    }
+
+    // ===== ВХОД В ПРИЛОЖЕНИЕ =====
+    function enterSite() {
+      els.landing.classList.add('hidden');
+      els.app.classList.add('visible');
+      // Авто-фокус на поиск после анимации
+      setTimeout(() => els.searchInput.focus(), 600);
+    }
+
     // ===== ЗАПУСК =====
     document.addEventListener('DOMContentLoaded', init);
   </script>
