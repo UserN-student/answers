@@ -1,0 +1,11 @@
+{
+  "name": "answers",
+  "version": "1.0.0",
+  "scripts": {
+    "generate": "node scripts/generate-pages.js"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.0.0",
+    "marked": "^9.0.0"
+  }
+}
