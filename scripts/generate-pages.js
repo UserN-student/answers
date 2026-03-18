@@ -7,13 +7,13 @@ const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 const owner = process.env.REPO_OWNER;
 const repo = process.env.REPO_NAME;
 
-// Настройки marked для полного Markdown
+// Настройки marked
 marked.setOptions({
-  gfm: true, // GitHub Flavored Markdown
-  breaks: true, // Переносы строк
+  gfm: true,
+  breaks: true,
   headerIds: true,
   mangle: false,
-  sanitize: false, // Не санитизировать (мы доверяем своим файлам)
+  sanitize: false,
   smartLists: true,
   smartypants: false
 });
@@ -36,25 +36,28 @@ async function getFileDate(filePath) {
   try {
     const { data } = await octokit.repos.listCommits({ owner, repo, path: filePath, per_page: 1 });
     return data[0]?.commit.committer.date || new Date().toISOString();
-  } catch { return new Date().toISOString(); }
+  } catch { 
+    return new Date().toISOString(); 
+  }
 }
 
-// Извлечение текста из HTML для поиска
 function stripHtml(html) {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 (async () => {
+  console.log('🔍 Поиск markdown файлов...');
   const files = findMarkdownFiles();
-  console.log('📁 Найдено .md файлов:', files.length);
+  console.log(`📁 Найдено файлов: ${files.length}`);
   
   const pages = [];
   for (const filePath of files) {
     try {
+      console.log(`\n📄 Обработка: ${filePath}`);
       const content = fs.readFileSync(filePath, 'utf8');
       const name = path.basename(filePath, '.md');
       
-      // Генерация slug
+      // Slug
       const slug = name.toLowerCase()
         .replace(/[^a-z0-9а-яё\-_\s]/gi, '')
         .replace(/[\s_]+/g, '-')
@@ -66,20 +69,22 @@ function stripHtml(html) {
       const parts = relative.split('/');
       const category = parts.length > 1 ? parts[0] : 'general';
       
-      // Парсинг заголовка и описания
+      // Заголовок и описание
       const lines = content.split('\n').filter(l => l.trim());
       const firstLine = lines[0] || '';
       const titleMatch = firstLine.match(/^#\s+(.+)$/);
       const title = titleMatch ? titleMatch[1].trim() : name;
       
-      // Описание (первый абзац после заголовка)
       const descLine = lines.slice(1).find(l => l.trim() && !l.startsWith('#')) || '';
-      const description = stripHtml(marked.parse(descLine)).slice(0, 160) + '...';
+      const descHtml = marked.parse(descLine);
+      const description = stripHtml(descHtml).slice(0, 160) + '...';
       
-      // Полный рендеринг markdown
+      // РЕНДЕРИНГ MARKDOWN В HTML
+      console.log('  🔄 Рендеринг markdown...');
       const renderedContent = marked.parse(content);
+      console.log(`  ✅ HTML сгенерирован (${renderedContent.length} символов)`);
       
-      // Текст для поиска (без HTML тегов)
+      // Текст для поиска
       const searchText = `${title} ${description} ${stripHtml(renderedContent)}`.toLowerCase();
 
       pages.push({
@@ -90,22 +95,28 @@ function stripHtml(html) {
         date: await getFileDate(filePath),
         content: renderedContent,
         searchText,
-        rawContent: content // Сохраняем для копирования
+        rawContent: content
       });
       
-      console.log(`✅ ${filePath}`);
     } catch (err) {
-      console.error(`❌ ${filePath}:`, err.message);
+      console.error(`  ❌ Ошибка: ${err.message}`);
     }
   }
 
   pages.sort((a, b) => new Date(b.date) - new Date(a.date));
   
-  fs.writeFileSync('pages.json', JSON.stringify({ 
-    pages, 
+  const output = {
+    pages,
     updated: new Date().toISOString(),
-    count: pages.length 
-  }, null, 2));
+    count: pages.length
+  };
   
-  console.log(`\n🎉 pages.json: ${pages.length} страниц`);
+  fs.writeFileSync('pages.json', JSON.stringify(output, null, 2));
+  console.log(`\n🎉 Готово! pages.json: ${pages.length} страниц`);
+  
+  // Проверка первого элемента
+  if (pages.length > 0) {
+    console.log('\n📋 Пример контента (первые 200 символов):');
+    console.log(pages[0].content.substring(0, 200));
+  }
 })();
