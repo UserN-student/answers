@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install deps
+      - name: Install dependencies
         run: npm install @octokit/rest marked
 
       - name: Generate pages.json
