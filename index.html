@@ -423,7 +423,7 @@
       line-height: 1.6;
     }
     
-    /* Tables */
+    /* Tables - ИСПРАВЛЕНО: Добавлены вертикальные линии */
     .markdown-body table {
       width: 100%;
       border-collapse: collapse;
@@ -442,12 +442,22 @@
       padding: 14px 16px;
       text-align: left;
       border-bottom: 2px solid var(--border-light);
+      border-right: 1px solid var(--border); /* Вертикальная линия справа */
     }
     
+    .markdown-body th:last-child {
+      border-right: none; /* Убираем линию у последней ячейки заголовка */
+    }
+
     .markdown-body td {
       padding: 14px 16px;
       border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border); /* Вертикальная линия справа */
       color: var(--text-secondary);
+    }
+    
+    .markdown-body td:last-child {
+      border-right: none; /* Убираем линию у последней ячейки строки */
     }
     
     .markdown-body tr:hover td { background: var(--bg-card); color: var(--text-primary); }
