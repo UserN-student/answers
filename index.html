@@ -4,239 +4,110 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <meta name="theme-color" content="#121212"/>
-  <title>Вопрос/Ответ — База для экзамена</title>
+  <title>Вопрос/Ответ</title>
   
-  <!-- CDN: Markdown + Search -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.basic.min.js"></script>
   
   <style>
-    /* ===== AURUMWIKI-INSPIRED DARK THEME ===== */
     :root {
-      --bg-body: #121212;
-      --bg-sidebar: #161616;
-      --bg-card: #1e1e1e;
-      --bg-card-hover: #252525;
-      --bg-element: #2a2a2a;
-      --bg-search: #1a1a1a;
-      
-      --text-primary: #ffffff;
-      --text-secondary: #a0a0a0;
-      --text-muted: #666666;
-      
-      --accent: #4caf50;
-      --accent-hover: #66bb6a;
-      --accent-soft: rgba(76, 175, 80, 0.15);
-      --border: #333333;
-      
-      --transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-      --radius: 12px;
-      --shadow: 0 4px 20px rgba(0,0,0,0.4);
+      --bg-body: #121212; --bg-sidebar: #161616; --bg-card: #1e1e1e;
+      --bg-card-hover: #252525; --bg-element: #2a2a2a; --bg-search: #1a1a1a;
+      --text-primary: #ffffff; --text-secondary: #a0a0a0; --text-muted: #666666;
+      --accent: #4caf50; --accent-hover: #66bb6a; --accent-soft: rgba(76,175,80,0.15);
+      --border: #333333; --transition: all 0.2s ease; --radius: 12px; --shadow: 0 4px 20px rgba(0,0,0,0.4);
     }
-
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    
     body {
-      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg-body);
-      color: var(--text-primary);
-      height: 100vh;
-      overflow: hidden;
-      font-size: 16px;
-      line-height: 1.5;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-body); color: var(--text-primary);
+      height: 100vh; overflow: hidden; font-size: 16px; line-height: 1.5;
     }
-
-    /* ===== SVG ICONS ===== */
-    .icon {
-      width: 18px; height: 18px;
-      fill: none; stroke: currentColor;
-      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
-      flex-shrink: 0;
-    }
+    .icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; flex-shrink: 0; }
     .icon-lg { width: 28px; height: 28px; }
-    .icon-xl { width: 40px; height: 40px; }
-
-    /* ===== LANDING PAGE ===== */
-    #landing-page {
-      position: fixed; inset: 0;
-      background: var(--bg-body);
-      z-index: 1000;
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      transition: opacity 0.4s ease, visibility 0.4s;
-      padding: 20px;
-    }
-    #landing-page.hidden {
-      opacity: 0; visibility: hidden; pointer-events: none;
-    }
-    .landing-content {
-      text-align: center; max-width: 480px; width: 100%;
-      animation: fadeInUp 0.6s ease;
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: none; }
-    }
-    .landing-logo {
-      font-size: 36px; font-weight: 800; margin-bottom: 12px;
-      letter-spacing: -0.5px;
-    }
-    .landing-logo span { color: var(--accent); }
-    .landing-desc {
-      color: var(--text-secondary); margin-bottom: 32px;
-      font-size: 1.05rem; line-height: 1.6;
-    }
-    .start-btn {
-      background: var(--accent); color: white; border: none;
-      padding: 14px 28px; font-size: 16px; font-weight: 600;
-      border-radius: 10px; cursor: pointer;
-      transition: var(--transition);
-      display: inline-flex; align-items: center; gap: 8px;
-      width: 100%; max-width: 320px; justify-content: center;
-    }
-    .start-btn:hover {
-      background: var(--accent-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
-    }
-    .start-btn:active { transform: translateY(0); }
-
-    /* ===== MAIN APP ===== */
-    #app-container {
-      display: flex; height: 100vh;
-      opacity: 0; transform: scale(0.99);
-      transition: opacity 0.5s ease, transform 0.5s ease;
-    }
-    #app-container.visible { opacity: 1; transform: scale(1); }
-
-    /* ===== SIDEBAR (Desktop) ===== */
+    
+    /* SIDEBAR */
     .sidebar {
-      width: 260px; background: var(--bg-sidebar);
-      border-right: 1px solid var(--border);
-      display: flex; flex-direction: column;
-      padding: 20px 16px; flex-shrink: 0;
+      width: 260px; background: var(--bg-sidebar); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; padding: 20px 16px; flex-shrink: 0;
     }
     .sidebar-header {
-      display: flex; align-items: center; gap: 10px;
-      margin-bottom: 24px; font-weight: 700; font-size: 18px;
-      padding-bottom: 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px; margin-bottom: 24px;
+      font-weight: 700; font-size: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
     }
     .sidebar-header .logo-icon { color: var(--accent); }
-    
     .nav-section { margin-bottom: 20px; }
     .nav-title {
-      font-size: 11px; text-transform: uppercase;
-      color: var(--text-muted); letter-spacing: 0.8px;
-      margin-bottom: 10px; font-weight: 600; padding: 0 8px;
+      font-size: 11px; text-transform: uppercase; color: var(--text-muted);
+      letter-spacing: 0.8px; margin-bottom: 10px; font-weight: 600; padding: 0 8px;
     }
     .nav-link {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px; color: var(--text-secondary);
-      text-decoration: none; border-radius: 8px;
-      transition: var(--transition); font-size: 14px;
-      margin-bottom: 4px; cursor: pointer;
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      color: var(--text-secondary); text-decoration: none; border-radius: 8px;
+      transition: var(--transition); font-size: 14px; margin-bottom: 4px; cursor: pointer;
     }
-    .nav-link:hover { background: var(--bg-card); color: var(--text-primary); }
+    .nav-link:hover, .nav-link.active { background: var(--bg-element); color: var(--text-primary); }
     .nav-link.active { background: var(--accent-soft); color: var(--accent); }
-    
     .category-list { max-height: 200px; overflow-y: auto; }
     .category-item {
       padding: 6px 12px; font-size: 13px; color: var(--text-secondary);
       cursor: pointer; border-radius: 6px; transition: var(--transition);
     }
-    .category-item:hover, .category-item.active {
-      background: var(--bg-element); color: var(--text-primary);
-    }
-
-    /* ===== MOBILE MENU TOGGLE ===== */
+    .category-item:hover, .category-item.active { background: var(--bg-element); color: var(--text-primary); }
+    
+    /* MOBILE MENU */
     .menu-toggle {
-      display: none; position: fixed; top: 12px; left: 12px;
-      z-index: 200; background: var(--bg-card); border: 1px solid var(--border);
+      display: none; position: fixed; top: 12px; left: 12px; z-index: 200;
+      background: var(--bg-card); border: 1px solid var(--border);
       padding: 8px; border-radius: 8px; cursor: pointer;
     }
     .menu-toggle.active { background: var(--accent); border-color: var(--accent); }
-
-    /* ===== MAIN CONTENT AREA ===== */
+    
+    /* MAIN AREA */
     .main-area {
-      flex: 1; overflow-y: auto; overflow-x: hidden;
-      padding: 20px; scroll-behavior: smooth;
-      position: relative;
+      flex: 1; overflow-y: auto; overflow-x: hidden; padding: 20px; scroll-behavior: smooth; position: relative;
     }
     .main-area::-webkit-scrollbar { width: 6px; }
-    .main-area::-webkit-scrollbar-track { background: transparent; }
     .main-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-    /* ===== HEADER + SEARCH ===== */
-    .header-bar {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 20px; gap: 12px; flex-wrap: wrap;
-    }
+    
+    /* HEADER + SEARCH */
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
     .header-title h2 { font-size: 22px; font-weight: 700; }
     .header-title p { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
-    
-    .search-wrapper {
-      position: relative; width: 100%; max-width: 480px;
-      flex: 1; min-width: 200px;
-    }
+    .search-wrapper { position: relative; width: 100%; max-width: 480px; flex: 1; min-width: 200px; }
     .search-input {
-      width: 100%; background: var(--bg-search);
-      border: 1px solid var(--border); border-radius: 10px;
-      padding: 12px 16px 12px 42px; color: var(--text-primary);
+      width: 100%; background: var(--bg-search); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 16px 12px 42px; color: var(--text-primary);
       font-size: 15px; outline: none; transition: var(--transition);
     }
-    .search-input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
-    }
-    .search-icon-pos {
-      position: absolute; left: 14px; top: 50%;
-      transform: translateY(-50%); color: var(--text-muted);
-    }
+    .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .search-icon-pos { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
     .search-shortcut {
-      position: absolute; right: 12px; top: 50%;
-      transform: translateY(-50%); font-size: 11px;
-      color: var(--text-muted); background: var(--bg-element);
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 11px; color: var(--text-muted); background: var(--bg-element);
       padding: 2px 6px; border-radius: 4px;
     }
-
-    /* ===== SEARCH RESULTS DROPDOWN ===== */
+    
+    /* SEARCH RESULTS */
     .search-results {
-      position: absolute; top: 100%; left: 0; right: 0;
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 0 0 var(--radius) var(--radius);
-      margin-top: 6px; max-height: 50vh; overflow-y: auto;
-      box-shadow: var(--shadow); z-index: 150;
-      display: none;
+      position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius);
+      margin-top: 6px; max-height: 50vh; overflow-y: auto; box-shadow: var(--shadow);
+      z-index: 150; display: none;
     }
     .search-results.show { display: block; animation: slideDown 0.2s ease; }
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-8px); }
-      to { opacity: 1; transform: none; }
-    }
-    .result-item {
-      padding: 12px 16px; border-bottom: 1px solid var(--border);
-      cursor: pointer; transition: var(--transition);
-    }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+    .result-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: var(--transition); }
     .result-item:last-child { border-bottom: none; }
-    .result-item:hover, .result-item.active {
-      background: var(--bg-element);
-    }
-    .result-title {
-      font-weight: 600; font-size: 15px; margin-bottom: 4px;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .result-title mark {
-      background: var(--accent-soft); color: var(--accent);
-      padding: 0 3px; border-radius: 3px; font-weight: 700;
-    }
+    .result-item:hover, .result-item.active { background: var(--bg-element); }
+    .result-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .result-title mark { background: var(--accent-soft); color: var(--accent); padding: 0 3px; border-radius: 3px; font-weight: 700; }
     .result-meta { font-size: 12px; color: var(--text-muted); }
     .result-category {
-      display: inline-block; background: var(--accent-soft);
-      color: var(--accent); padding: 2px 8px; border-radius: 4px;
-      font-size: 11px; font-weight: 600; margin-right: 6px;
+      display: inline-block; background: var(--accent-soft); color: var(--accent);
+      padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 6px;
     }
-
-    /* ===== CONTENT GRID / LIST ===== */
+    
+    /* CONTENT GRID */
     .section-title {
       font-size: 18px; font-weight: 700; margin: 24px 0 14px;
       display: flex; align-items: center; gap: 10px;
@@ -245,141 +116,74 @@
       content: ''; display: block; width: 3px; height: 18px;
       background: var(--accent); border-radius: 2px;
     }
-    .content-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 14px;
-    }
+    .content-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    
+    /* CARD — ВЕСЬ БЛОК КЛИКАБЕЛЬНЫЙ */
     .article-card {
       background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 16px;
-      cursor: pointer; transition: var(--transition);
-      display: flex; flex-direction: column; gap: 10px;
+      border-radius: var(--radius); padding: 16px; cursor: pointer;
+      transition: var(--transition); display: flex; flex-direction: column; gap: 10px;
+      user-select: none;
     }
-    .article-card:hover {
-      transform: translateY(-3px); border-color: var(--accent);
-      box-shadow: var(--shadow);
-    }
-    .card-header { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
-    .card-title { font-weight: 600; font-size: 16px; line-height: 1.4; }
+    .article-card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: var(--shadow); }
+    .article-card:active { transform: scale(0.99); }
+    .card-header { display: flex; justify-content: space-between; align-items: start; gap: 10px; pointer-events: none; }
+    .card-title { font-weight: 600; font-size: 16px; line-height: 1.4; pointer-events: none; }
     .card-category {
       font-size: 11px; background: var(--accent-soft); color: var(--accent);
-      padding: 3px 8px; border-radius: 4px; font-weight: 600; flex-shrink: 0;
+      padding: 3px 8px; border-radius: 4px; font-weight: 600; flex-shrink: 0; pointer-events: none;
     }
     .card-desc {
-      font-size: 14px; color: var(--text-secondary);
-      line-height: 1.4; display: -webkit-box;
-      -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      font-size: 14px; color: var(--text-secondary); line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      pointer-events: none;
     }
     .card-footer {
       display: flex; justify-content: space-between; align-items: center;
-      font-size: 12px; color: var(--text-muted); margin-top: 4px;
+      font-size: 12px; color: var(--text-muted); margin-top: 4px; pointer-events: none;
     }
-
-    /* ===== ARTICLE VIEW ===== */
+    .card-footer .text-accent { pointer-events: none; }
+    
+    /* PAGE VIEW */
     .page-view { display: none; animation: fadeIn 0.3s ease; }
     .page-view.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    
-    .page-header {
-      margin-bottom: 20px; padding-bottom: 16px;
-      border-bottom: 1px solid var(--border);
-    }
+    .page-header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
     .page-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
-    .page-meta {
-      display: flex; gap: 12px; font-size: 13px; color: var(--text-muted);
-      flex-wrap: wrap; align-items: center;
-    }
+    .page-meta { display: flex; gap: 12px; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; align-items: center; }
     .page-meta span { display: flex; align-items: center; gap: 4px; }
-    
-    .page-actions {
-      display: flex; gap: 10px; margin: 16px 0; flex-wrap: wrap;
-    }
+    .page-actions { display: flex; gap: 10px; margin: 16px 0; flex-wrap: wrap; }
     .btn {
-      background: var(--bg-element); color: var(--text-primary);
-      border: 1px solid var(--border); padding: 10px 16px;
-      border-radius: 8px; font-size: 14px; font-weight: 500;
-      cursor: pointer; transition: var(--transition);
-      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--bg-element); color: var(--text-primary); border: 1px solid var(--border);
+      padding: 10px 16px; border-radius: 8px; font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; gap: 6px;
     }
     .btn:hover { background: var(--bg-card-hover); }
     .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
     .btn-primary:hover { background: var(--accent-hover); }
-    .btn:active { transform: scale(0.98); }
     
-    .markdown-body {
-      font-size: 16px; line-height: 1.7; color: var(--text-primary);
-    }
-    .markdown-body h1, .markdown-body h2 {
-      font-size: 20px; margin: 24px 0 12px; padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-    }
-    .markdown-body h3 { font-size: 18px; margin: 20px 0 10px; }
+    /* MARKDOWN CONTENT — БАЗОВЫЙ */
+    .markdown-body { font-size: 16px; line-height: 1.7; color: var(--text-primary); }
+    .markdown-body h1 { font-size: 22px; margin: 20px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .markdown-body h2 { font-size: 20px; margin: 18px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    .markdown-body h3 { font-size: 18px; margin: 16px 0 8px; }
     .markdown-body p { margin: 12px 0; }
-    .markdown-body a { color: var(--accent); text-decoration: none; }
-    .markdown-body a:hover { text-decoration: underline; }
+    .markdown-body strong { color: var(--text-primary); font-weight: 600; }
+    .markdown-body em { color: var(--text-secondary); font-style: italic; }
     .markdown-body code {
-      background: var(--bg-element); padding: 2px 6px;
-      border-radius: 4px; font-family: ui-monospace, monospace;
-      font-size: 0.95em;
+      background: var(--bg-element); padding: 2px 6px; border-radius: 4px;
+      font-family: ui-monospace, monospace; font-size: 0.95em;
     }
-    .markdown-body pre {
-      background: var(--bg-element); border-radius: 8px;
-      padding: 14px; overflow-x: auto; margin: 14px 0;
-      border: 1px solid var(--border); font-size: 14px;
-    }
-    .markdown-body pre code { background: none; padding: 0; }
-    .markdown-body blockquote {
-      border-left: 3px solid var(--accent); padding-left: 14px;
-      margin: 14px 0; color: var(--text-secondary);
-      background: var(--accent-soft); padding: 10px 14px;
-      border-radius: 0 6px 6px 0;
-    }
-    .markdown-body ul, .markdown-body ol {
-      padding-left: 24px; margin: 12px 0;
-    }
-    .markdown-body li { margin: 6px 0; }
-    .markdown-body img {
-      max-width: 100%; border-radius: 8px; margin: 10px 0;
-      border: 1px solid var(--border);
-    }
-    .markdown-body table {
-      width: 100%; border-collapse: collapse; margin: 14px 0;
-      font-size: 14px;
-    }
-    .markdown-body th, .markdown-body td {
-      padding: 10px 12px; border: 1px solid var(--border);
-      text-align: left;
-    }
-    .markdown-body th { background: var(--bg-element); }
-
-    /* ===== COPY BUTTON & TOAST ===== */
-    .copy-toast {
-      position: fixed; bottom: 24px; left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: var(--accent); color: white;
-      padding: 12px 24px; border-radius: 10px;
-      font-weight: 500; box-shadow: var(--shadow);
-      z-index: 1000; transition: transform 0.3s ease;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .copy-toast.show { transform: translateX(-50%) translateY(0); }
-
-    /* ===== EMPTY / LOADING STATES ===== */
-    .loading, .empty-state {
-      text-align: center; padding: 40px 20px;
-      color: var(--text-muted);
-    }
-    .empty-state-icon {
-      font-size: 48px; margin-bottom: 16px; opacity: 0.6;
-    }
-
-    /* ===== RESPONSIVE ===== */
+    
+    /* EMPTY / LOADING */
+    .loading, .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+    .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.6; }
+    
+    /* RESPONSIVE */
     @media (max-width: 900px) {
       .sidebar {
-        position: fixed; top: 0; left: 0; height: 100%;
-        width: 280px; z-index: 180;
-        transform: translateX(-100%); transition: transform 0.3s ease;
-        box-shadow: var(--shadow);
+        position: fixed; top: 0; left: 0; height: 100%; width: 280px; z-index: 180;
+        transform: translateX(-100%); transition: transform 0.3s ease; box-shadow: var(--shadow);
       }
       .sidebar.open { transform: translateX(0); }
       .menu-toggle { display: flex; }
@@ -388,39 +192,17 @@
       .search-wrapper { max-width: 100%; }
       .content-grid { grid-template-columns: 1fr; }
       .page-title { font-size: 22px; }
-      .markdown-body { font-size: 15px; }
     }
-    
     @media (max-width: 480px) {
-      .landing-logo { font-size: 32px; }
-      .landing-desc { font-size: 1rem; }
       .page-actions { flex-direction: column; }
       .btn { width: 100%; justify-content: center; }
     }
-
-    /* ===== UTILS ===== */
     .hidden { display: none !important; }
     .text-accent { color: var(--accent); }
     .text-muted { color: var(--text-muted); }
-    .mt-2 { margin-top: 8px; }
-    .mb-2 { margin-bottom: 8px; }
   </style>
 </head>
 <body>
-
-  <!-- 🚀 LANDING PAGE -->
-  <div id="landing-page">
-    <div class="landing-content">
-      <div class="landing-logo">Вопрос/<span>Ответ</span></div>
-      <p class="landing-desc">
-        База знаний для экзамена. Найди ответ за 3 секунды — просто начни вводить вопрос.
-      </p>
-      <button class="start-btn" onclick="enterSite()">
-        <svg class="icon" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        Начать
-      </button>
-    </div>
-  </div>
 
   <!-- 📱 MOBILE MENU TOGGLE -->
   <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">
@@ -428,7 +210,7 @@
   </button>
 
   <!-- 🖥️ MAIN APP -->
-  <div id="app-container">
+  <div id="app-container" style="display:flex;height:100vh;opacity:1;transform:scale(1);">
     
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
@@ -447,16 +229,7 @@
       
       <div class="nav-section">
         <div class="nav-title">Категории</div>
-        <div class="category-list" id="categoryList">
-          <!-- Заполняется динамически -->
-        </div>
-      </div>
-      
-      <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border);">
-        <div class="nav-link" onclick="copyAll()">
-          <svg class="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-          Скопировать всё
-        </div>
+        <div class="category-list" id="categoryList"></div>
       </div>
     </aside>
 
@@ -471,7 +244,7 @@
         </div>
         <div class="search-wrapper">
           <svg class="icon search-icon-pos" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" class="search-input" id="searchInput" placeholder="Поиск по вопросу или ответу..." autocomplete="off">
+          <input type="text" class="search-input" id="searchInput" placeholder="Поиск..." autocomplete="off">
           <span class="search-shortcut">Ctrl+K</span>
           <div class="search-results" id="searchResults"></div>
         </div>
@@ -479,11 +252,10 @@
 
       <!-- LIST VIEW -->
       <div id="listView" class="page-view active">
-        <div id="loading" class="loading">⏳ Загрузка базы...</div>
+        <div id="loading" class="loading">⏳ Загрузка...</div>
         <div id="emptyState" class="empty-state" style="display:none">
           <div class="empty-state-icon">🔍</div>
           <p>Ничего не найдено</p>
-          <p class="text-muted" style="font-size:14px;margin-top:8px">Попробуй другие ключевые слова</p>
         </div>
         <div id="articlesContainer" class="content-grid"></div>
       </div>
@@ -502,11 +274,11 @@
         <div class="page-actions">
           <button class="btn btn-primary" onclick="copyPageContent()">
             <svg class="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            Скопировать ответ
+            Скопировать
           </button>
           <button class="btn" onclick="showList()">
             <svg class="icon" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-            Назад к списку
+            Назад
           </button>
         </div>
         
@@ -516,14 +288,14 @@
     </main>
   </div>
 
-  <!-- TOAST NOTIFICATION -->
-  <div class="copy-toast" id="copyToast">
+  <!-- TOAST -->
+  <div class="copy-toast" id="copyToast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--accent);color:white;padding:12px 24px;border-radius:10px;font-weight:500;box-shadow:var(--shadow);z-index:1000;transition:transform 0.3s ease;display:flex;align-items:center;gap:8px;">
     <svg class="icon" viewBox="0 0 24 24" style="stroke:white"><polyline points="20 6 9 17 4 12"></polyline></svg>
     <span id="toastText">Скопировано!</span>
   </div>
 
   <script>
-    // ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+    // ===== ГЛОБАЛЬНЫЕ =====
     let pages = [], fuse = null, categories = new Set();
     const basePath = (() => {
       const path = window.location.pathname;
@@ -531,10 +303,8 @@
       return repo && !repo.includes('github.io') ? `/${repo}/` : '/';
     })();
 
-    // ===== DOM ELEMENTS =====
+    // ===== DOM =====
     const els = {
-      landing: document.getElementById('landing-page'),
-      app: document.getElementById('app-container'),
       sidebar: document.getElementById('sidebar'),
       menuToggle: document.getElementById('menuToggle'),
       searchInput: document.getElementById('searchInput'),
@@ -548,90 +318,66 @@
       countBadge: document.getElementById('countBadge'),
       headerTitle: document.getElementById('headerTitle'),
       headerSub: document.getElementById('headerSub'),
-      // Page view
       pageTitle: document.getElementById('pageTitle'),
       pageCategory: document.getElementById('pageCategory'),
       pageDate: document.getElementById('pageDate'),
       pageSlug: document.getElementById('pageSlug'),
       pageContent: document.getElementById('pageContent'),
-      // Toast
       copyToast: document.getElementById('copyToast'),
-      toastText: document.getElementById('toastText')
+      toastText: document.getElementById('toastText'),
+      // FIX: безопасное получение mainArea
+      get mainArea() {
+        return document.querySelector('.main-area') || document.body;
+      }
     };
 
-    // ===== ИНИЦИАЛИЗАЦИЯ =====
+    // ===== INIT =====
     async function init() {
       try {
         const res = await fetch(basePath + 'pages.json?' + Date.now());
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        
         const data = await res.json();
         pages = data.pages || [];
         
-        // Сбор категорий
         pages.forEach(p => {
           if (p.category) categories.add(p.category);
-          // Подготовка текста для поиска
           p.searchText = `${p.title} ${p.description} ${p.content.replace(/<[^>]*>/g, ' ')}`.toLowerCase();
         });
         
-        // Инициализация Fuse
         fuse = new Fuse(pages, {
           keys: ['title', 'description', 'searchText', 'category'],
-          threshold: 0.25,
-          minMatchCharLength: 2,
-          includeMatches: true
+          threshold: 0.25, minMatchCharLength: 2, includeMatches: true
         });
         
         renderCategories();
         renderList(pages);
         handleRoute();
-        
-        // Фокус на поиск после загрузки
-        setTimeout(() => els.searchInput.focus(), 500);
-        
+        els.loading.style.display = 'none';
+        setTimeout(() => els.searchInput?.focus(), 300);
       } catch (err) {
         console.error('❌ Ошибка:', err);
-        els.loading.innerHTML = `
-          <div style="color:#ff6b6b;margin-bottom:12px">❌ Не удалось загрузить базу</div>
-          <details style="font-size:13px;color:var(--text-muted);text-align:left">
-            <summary style="cursor:pointer">🔧 Как исправить?</summary>
-            <ol style="padding-left:18px;margin-top:8px;line-height:1.8">
-              <li>Проверь вкладку <b>Actions</b> в репозитории</li>
-              <li>Убедись, что <code>pages.json</code> есть в корне</li>
-              <li>Settings → Pages → ветка <code>main</code>, папка <code>/</code></li>
-              <li>Открой <a href="${basePath}pages.json" target="_blank" style="color:var(--accent)">${basePath}pages.json</a> — если 404, файл не задеплоился</li>
-            </ol>
-          </details>
-        `;
+        els.loading.innerHTML = `<div style="color:#ff6b6b">❌ Ошибка загрузки</div><details style="font-size:13px;color:var(--text-muted);margin-top:10px;text-align:left"><summary>🔧 Помощь</summary><ol style="padding-left:18px;margin-top:8px"><li>Проверь Actions в репозитории</li><li>Есть ли pages.json в корне?</li><li>Settings → Pages → main, /</li></ol></details>`;
       }
     }
 
-    // ===== РЕНДЕР КАТЕГОРИЙ =====
+    // ===== РЕНДЕР =====
     function renderCategories() {
       els.categoryList.innerHTML = Array.from(categories).sort().map(cat => `
-        <div class="category-item" onclick="filterByCategory('${escapeHtml(cat)}')">
-          ${escapeHtml(cat)}
-        </div>
+        <div class="category-item" onclick="filterByCategory('${escapeHtml(cat)}')">${escapeHtml(cat)}</div>
       `).join('');
     }
-
-    // ===== РЕНДЕР СПИСКА =====
+    
     function renderList(items) {
       els.articlesContainer.innerHTML = '';
-      
-      if (items.length === 0) {
-        els.emptyState.style.display = 'block';
-        els.countBadge.textContent = '0';
-        return;
-      }
-      
+      if (items.length === 0) { els.emptyState.style.display = 'block'; els.countBadge.textContent = '0'; return; }
       els.emptyState.style.display = 'none';
       els.countBadge.textContent = items.length;
       
       items.forEach(page => {
         const card = document.createElement('div');
         card.className = 'article-card';
+        // ВЕСЬ БЛОК КЛИКАБЕЛЬНЫЙ — onclick на карточке
+        card.onclick = (e) => { e.preventDefault(); openPage(page.slug); };
         card.innerHTML = `
           <div class="card-header">
             <div class="card-title">${escapeHtml(page.title)}</div>
@@ -643,21 +389,19 @@
             <span class="text-accent">Открыть →</span>
           </div>
         `;
-        card.onclick = () => openPage(page.slug);
         els.articlesContainer.appendChild(card);
       });
     }
 
-    // ===== ФИЛЬТР ПО КАТЕГОРИИ =====
+    // ===== ФИЛЬТР / ОТКРЫТИЕ =====
     function filterByCategory(cat) {
-      const filtered = cat === 'all' ? pages : pages.filter(p => p.category === cat);
-      els.headerTitle.textContent = cat === 'all' ? 'Все вопросы' : cat;
+      const filtered = pages.filter(p => p.category === cat);
+      els.headerTitle.textContent = cat;
       renderList(filtered);
       showList();
       closeSidebar();
     }
-
-    // ===== ОТКРЫТИЕ СТРАНИЦЫ =====
+    
     function openPage(slug) {
       const page = pages.find(p => p.slug === slug);
       if (!page) return;
@@ -668,21 +412,17 @@
       els.pageSlug.textContent = `#${page.slug}`;
       els.pageContent.innerHTML = page.content;
       
-      // Прокрутка наверх
-      els.mainArea.scrollTop = 0;
+      // FIX: безопасный скролл
+      if (els.mainArea && typeof els.mainArea.scrollTop !== 'undefined') {
+        els.mainArea.scrollTop = 0;
+      }
       
-      // Переключение вида
       els.listView.classList.remove('active');
       els.pageView.classList.add('active');
-      
-      // Обновление URL
       history.pushState({ slug }, '', `#${slug}`);
-      
-      // На мобилке — закрыть сайдбар
       closeSidebar();
     }
-
-    // ===== ВОЗВРАТ К СПИСКУ =====
+    
     function showList() {
       els.pageView.classList.remove('active');
       els.listView.classList.add('active');
@@ -694,179 +434,78 @@
     }
 
     // ===== ПОИСК =====
-    els.searchInput.addEventListener('input', (e) => {
+    els.searchInput?.addEventListener('input', (e) => {
       const query = e.target.value.trim();
-      
       if (query.length < 2) {
         els.searchResults.classList.remove('show');
         renderList(pages);
         els.headerTitle.textContent = 'Все вопросы';
         return;
       }
-      
       const results = fuse.search(query).slice(0, 12);
       const items = results.map(r => r.item);
       
-      // Рендер выпадающих результатов
-      els.searchResults.innerHTML = items.map(page => {
-        const title = highlightMatch(page.title, query);
-        return `
-          <div class="result-item" onclick="openPage('${page.slug}');els.searchResults.classList.remove('show');els.searchInput.blur()">
-            <div class="result-title">${page.category ? `<span class="result-category">${escapeHtml(page.category)}</span>` : ''}${title}</div>
-            <div class="result-meta">${escapeHtml(page.description)}</div>
-          </div>
-        `;
-      }).join('') || '<div class="result-item" style="cursor:default;color:var(--text-muted)">Ничего не найдено</div>';
+      els.searchResults.innerHTML = items.map(page => `
+        <div class="result-item" onclick="openPage('${page.slug}');els.searchResults.classList.remove('show');els.searchInput.blur()">
+          <div class="result-title">${page.category ? `<span class="result-category">${escapeHtml(page.category)}</span>` : ''}${highlightMatch(page.title, query)}</div>
+          <div class="result-meta">${escapeHtml(page.description)}</div>
+        </div>
+      `).join('') || '<div class="result-item" style="cursor:default;color:var(--text-muted)">Ничего не найдено</div>';
       
       els.searchResults.classList.add('show');
-      
-      // Обновление заголовка
       els.headerTitle.textContent = `Результаты: ${items.length}`;
-      els.headerSub.querySelector('span').textContent = items.length;
     });
-
-    // Скрытие поиска при клике вне
+    
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.search-wrapper')) {
-        els.searchResults.classList.remove('show');
-      }
+      if (!e.target.closest('.search-wrapper')) els.searchResults.classList.remove('show');
     });
 
     // ===== КОПИРОВАНИЕ =====
     async function copyPageContent() {
-      const text = els.pageContent.innerText;
+      const text = els.pageContent?.innerText || '';
       try {
         await navigator.clipboard.writeText(text);
-        showToast('Ответ скопирован!');
+        showToast('Скопировано!');
       } catch {
-        // Fallback
         const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
         showToast('Скопировано!');
       }
     }
-    
-    async function copyAll() {
-      const allText = pages.map(p => `## ${p.title}\n\n${p.content.replace(/<[^>]*>/g, '')}`).join('\n\n---\n\n');
-      try {
-        await navigator.clipboard.writeText(allText);
-        showToast('Вся база скопирована!');
-      } catch {
-        showToast('Не удалось скопировать', 2500);
-      }
-    }
-    
-    function showToast(msg, duration = 1800) {
+    function showToast(msg) {
       els.toastText.textContent = msg;
-      els.copyToast.classList.add('show');
-      setTimeout(() => els.copyToast.classList.remove('show'), duration);
+      els.copyToast.style.transform = 'translateX(-50%) translateY(0)';
+      setTimeout(() => els.copyToast.style.transform = 'translateX(-50%) translateY(100px)', 1800);
     }
 
-    // ===== РОУТИНГ =====
+    // ===== SIDEBAR / KEYBOARD =====
+    function toggleSidebar() { els.sidebar.classList.toggle('open'); els.menuToggle.classList.toggle('active'); }
+    function closeSidebar() { els.sidebar.classList.remove('open'); els.menuToggle.classList.remove('active'); }
+    function closeSidebarOnOutsideClick(e) {
+      if (window.innerWidth <= 900 && els.sidebar.classList.contains('open') && !e.target.closest('.sidebar') && !e.target.closest('.menu-toggle')) closeSidebar();
+    }
+    
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); els.searchInput?.focus(); els.searchInput?.select(); }
+      if (e.key === 'Escape') { els.searchResults.classList.remove('show'); if (els.pageView.classList.contains('active')) showList(); }
+    });
+    
+    window.addEventListener('hashchange', handleRoute);
     function handleRoute() {
       const slug = location.hash.slice(1);
-      if (slug && pages.some(p => p.slug === slug)) {
-        openPage(slug);
-      } else {
-        els.loading.style.display = 'none';
-      }
+      if (slug && pages.some(p => p.slug === slug)) openPage(slug);
     }
-    window.addEventListener('hashchange', handleRoute);
-    window.addEventListener('popstate', handleRoute);
-
-    // ===== SIDEBAR TOGGLE (MOBILE) =====
-    function toggleSidebar() {
-      els.sidebar.classList.toggle('open');
-      els.menuToggle.classList.toggle('active');
-    }
-    function closeSidebar() {
-      els.sidebar.classList.remove('open');
-      els.menuToggle.classList.remove('active');
-    }
-    function closeSidebarOnOutsideClick(e) {
-      if (window.innerWidth <= 900 && 
-          els.sidebar.classList.contains('open') && 
-          !e.target.closest('.sidebar') && 
-          !e.target.closest('.menu-toggle')) {
-        closeSidebar();
-      }
-    }
-
-    // ===== KEYBOARD SHORTCUTS =====
-    document.addEventListener('keydown', (e) => {
-      // Ctrl+K / Cmd+K — фокус на поиск
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        els.searchInput.focus();
-        els.searchInput.select();
-      }
-      // Escape — закрыть поиск / вернуться к списку
-      if (e.key === 'Escape') {
-        els.searchResults.classList.remove('show');
-        if (els.pageView.classList.contains('active')) {
-          showList();
-        }
-      }
-      // Стрелки в поиске
-      if (els.searchResults.classList.contains('show')) {
-        const items = els.searchResults.querySelectorAll('.result-item');
-        let active = els.searchResults.querySelector('.result-item.active');
-        if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          if (active) {
-            active.classList.remove('active');
-            if (active.nextElementSibling) active.nextElementSibling.classList.add('active');
-          } else if (items[0]) items[0].classList.add('active');
-        }
-        if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          if (active) {
-            active.classList.remove('active');
-            if (active.previousElementSibling) active.previousElementSibling.classList.add('active');
-          }
-        }
-        if (e.key === 'Enter' && active) {
-          e.preventDefault();
-          active.click();
-        }
-      }
-    });
 
     // ===== УТИЛИТЫ =====
-    function escapeHtml(str) {
-      if (!str) return '';
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
-    
-    function highlightMatch(text, query) {
-      const safe = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`(${safe})`, 'gi');
-      return text.replace(regex, '<mark>$1</mark>');
-    }
-    
+    function escapeHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+    function highlightMatch(text, query) { const r = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'); return text.replace(r, '<mark>$1</mark>'); }
     function formatDate(dateStr, full = false) {
       const d = new Date(dateStr);
-      if (full) {
-        return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-      }
-      return d.toLocaleDateString('ru-RU');
+      return full ? d.toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }) : d.toLocaleDateString('ru-RU');
     }
 
-    // ===== ВХОД В ПРИЛОЖЕНИЕ =====
-    function enterSite() {
-      els.landing.classList.add('hidden');
-      els.app.classList.add('visible');
-      // Авто-фокус на поиск после анимации
-      setTimeout(() => els.searchInput.focus(), 600);
-    }
-
-    // ===== ЗАПУСК =====
+    // ===== START =====
     document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
