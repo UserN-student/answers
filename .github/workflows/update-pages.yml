@@ -1,21 +1,25 @@
+# .github/workflows/update-pages.yml
 name: Update Pages
 
 on:
   push:
     paths:
       - '**/*.md'
-  workflow_dispatch: # Чтобы можно было запустить вручную
+  workflow_dispatch:
 
 jobs:
   update-pages:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pages: write
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Важно для истории коммитов
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -32,9 +36,10 @@ jobs:
           REPO_NAME: ${{ github.event.repository.name }}
         run: node scripts/generate-pages.js
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          keep_files: true
+      - name: Commit pages.json
+        run: |
+          git config user.name 'GitHub Action'
+          git config user.email 'action@github.com'
+          git add pages.json
+          git diff --staged --quiet || git commit -m "chore: update pages.json [skip ci]"
+          git push
