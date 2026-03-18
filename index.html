@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Вопрос/Ответ</title>
+  
+  <!-- CDN: Markdown parser + fuzzy search -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.basic.min.js"></script>
+  
+  <style>
+    /* ===== ТЁМНАЯ ТЕМА + АДАПТИВ ===== */
+    :root {
+      --bg: #0d1117; --bg-soft: #161b22; --bg-hover: #21262d;
+      --text: #e6edf3; --text-dim: #8b949e; --border: #30363d;
+      --accent: #58a6ff; --accent-hover: #79c0ff; --code-bg: #161b22;
+      --shadow: 0 4px 12px rgba(0,0,0,0.3);
+      --radius: 12px; --transition: 0.2s ease;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+    }
+    
+    /* ===== HEADER + ПОИСК ===== */
+    .header {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--bg-soft); border-bottom: 1px solid var(--border);
+      padding: clamp(0.75rem, 2vw, 1rem);
+      backdrop-filter: blur(10px);
+    }
+    .search-wrap {
+      max-width: 720px; margin: 0 auto; position: relative;
+    }
+    .search-input {
+      width: 100%; padding: clamp(0.75rem, 2vw, 1rem) 1rem;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-size: clamp(1rem, 2.5vw, 1.1rem);
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .search-input:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+    }
+    .search-results {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--bg-soft); border: 1px solid var(--border);
+      border-radius: 0 0 var(--radius) var(--radius);
+      margin-top: 4px; max-height: 60vh; overflow-y: auto;
+      box-shadow: var(--shadow); display: none; z-index: 101;
+    }
+    .search-results.show { display: block; }
+    .result-item {
+      padding: clamp(0.75rem, 2vw, 1rem);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background var(--transition);
+    }
+    .result-item:last-child { border-bottom: none; }
+    .result-item:hover, .result-item.active { background: var(--bg-hover); }
+    .result-title { font-weight: 600; margin-bottom: 0.25rem; }
+    .result-meta { font-size: 0.875rem; color: var(--text-dim); }
+    
+    /* ===== КОНТЕНТ ===== */
+    .container {
+      max-width: 800px; margin: 0 auto; padding: clamp(1rem, 4vw, 2rem);
+    }
+    .page-view { display: none; }
+    .page-view.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    
+    .page-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .page-title { font-size: clamp(1.5rem, 5vw, 2rem); margin-bottom: 0.5rem; }
+    .page-meta { font-size: 0.9rem; color: var(--text-dim); display: flex; gap: 1rem; flex-wrap: wrap; }
+    
+    /* Markdown styles */
+    .markdown-body { font-size: clamp(1rem, 2.5vw, 1.05rem); }
+    .markdown-body h1, .markdown-body h2 { margin: 1.5rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+    .markdown-body h3 { margin: 1.25rem 0 0.75rem; }
+    .markdown-body p { margin: 0.75rem 0; }
+    .markdown-body a { color: var(--accent); text-decoration: none; }
+    .markdown-body a:hover { text-decoration: underline; }
+    .markdown-body code {
+      background: var(--code-bg); padding: 0.2em 0.4em;
+      border-radius: 4px; font-family: ui-monospace, monospace; font-size: 0.95em;
+    }
+    .markdown-body pre {
+      background: var(--code-bg); border-radius: 8px;
+      padding: 1rem; overflow-x: auto; margin: 1rem 0;
+      border: 1px solid var(--border);
+    }
+    .markdown-body pre code { background: none; padding: 0; }
+    .markdown-body blockquote {
+      border-left: 3px solid var(--accent); padding-left: 1rem;
+      margin: 1rem 0; color: var(--text-dim);
+    }
+    .markdown-body ul, .markdown-body ol { padding-left: 1.5rem; margin: 0.75rem 0; }
+    .markdown-body li { margin: 0.25rem 0; }
+    .markdown-body img { max-width: 100%; border-radius: 8px; margin: 0.5rem 0; }
+    .markdown-body table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    .markdown-body th, .markdown-body td {
+      padding: 0.5rem 0.75rem; border: 1px solid var(--border);
+    }
+    .markdown-body th { background: var(--bg-hover); }
+    
+    /* ===== СПИСОК СТАТЕЙ (главная) ===== */
+    .articles-list { display: grid; gap: 1rem; }
+    .article-card {
+      background: var(--bg-soft); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: clamp(1rem, 3vw, 1.25rem);
+      cursor: pointer; transition: transform var(--transition), border-color var(--transition);
+    }
+    .article-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .article-title { font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .article-desc { color: var(--text-dim); font-size: 0.95rem; margin-bottom: 0.75rem; }
+    .article-footer { display: flex; gap: 1rem; font-size: 0.85rem; color: var(--text-dim); flex-wrap: wrap; }
+    
+    /* ===== АДАПТИВ ===== */
+    @media (max-width: 640px) {
+      .header { padding: 0.75rem; }
+      .search-results { border-radius: 0 0 8px 8px; }
+      .page-meta { flex-direction: column; gap: 0.25rem; }
+      .article-footer { flex-direction: column; gap: 0.25rem; }
+    }
+    
+    /* ===== СКРОЛЛБАР ===== */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+    
+    /* ===== ЗАГРУЗКА ===== */
+    .loading { text-align: center; padding: 3rem; color: var(--text-dim); }
+    .empty-state { text-align: center; padding: 3rem; color: var(--text-dim); }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="search-wrap">
+      <input type="text" class="search-input" id="searchInput" placeholder="🔍 Поиск по вопросам и ответам..." autocomplete="off">
+      <div class="search-results" id="searchResults"></div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Главная: список статей -->
+    <div id="listView" class="page-view active">
+      <div id="articlesContainer" class="articles-list"></div>
+      <div id="loading" class="loading">Загрузка базы знаний...</div>
+      <div id="emptyState" class="empty-state" style="display:none">📭 Ничего не найдено. Добавьте .md файлы в репозиторий!</div>
+    </div>
+    
+    <!-- Просмотр статьи -->
+    <div id="pageView" class="page-view">
+      <div class="page-header">
+        <h1 class="page-title" id="pageTitle"></h1>
+        <div class="page-meta">
+          <span id="pageCategory"></span>
+          <span id="pageDate"></span>
+        </div>
+      </div>
+      <article class="markdown-body" id="pageContent"></article>
+      <div style="margin-top:2rem; padding-top:1rem; border-top:1px solid var(--border)">
+        <button onclick="showList()" style="background:var(--bg-soft); color:var(--text); border:1px solid var(--border); padding:0.5rem 1rem; border-radius:6px; cursor:pointer">← Назад к списку</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+    let pages = [];
+    let fuse = null;
+    const listView = document.getElementById('listView');
+    const pageView = document.getElementById('pageView');
+    const articlesContainer = document.getElementById('articlesContainer');
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    
+    // ===== ИНИЦИАЛИЗАЦИЯ =====
+    async function init() {
+      try {
+        const res = await fetch('pages.json?' + Date.now()); // Кэш-бастинг
+        const data = await res.json();
+        pages = data.pages || [];
+        
+        // Инициализация Fuse.js для поиска
+        fuse = new Fuse(pages, {
+          keys: ['title', 'description', 'searchText', 'category'],
+          threshold: 0.3,
+          includeMatches: true,
+          minMatchCharLength: 2
+        });
+        
+        renderList(pages);
+        handleRoute();
+        
+      } catch (err) {
+        console.error('Ошибка загрузки pages.json:', err);
+        document.getElementById('loading').textContent = '❌ Не удалось загрузить базу знаний';
+      }
+    }
+    
+    // ===== РЕНДЕР СПИСКА =====
+    function renderList(items) {
+      articlesContainer.innerHTML = '';
+      
+      if (items.length === 0) {
+        document.getElementById('emptyState').style.display = 'block';
+        return;
+      }
+      document.getElementById('emptyState').style.display = 'none';
+      
+      items.forEach(page => {
+        const card = document.createElement('div');
+        card.className = 'article-card';
+        card.innerHTML = `
+          <div class="article-title">${escapeHtml(page.title)}</div>
+          <div class="article-desc">${escapeHtml(page.description)}</div>
+          <div class="article-footer">
+            <span>📁 ${escapeHtml(page.category)}</span>
+            <span>📅 ${new Date(page.date).toLocaleDateString('ru-RU')}</span>
+          </div>
+        `;
+        card.onclick = () => openPage(page.slug);
+        articlesContainer.appendChild(card);
+      });
+    }
+    
+    // ===== ОТКРЫТИЕ СТРАНИЦЫ =====
+    function openPage(slug) {
+      const page = pages.find(p => p.slug === slug);
+      if (!page) return;
+      
+      document.getElementById('pageTitle').textContent = page.title;
+      document.getElementById('pageCategory').textContent = `📁 ${page.category}`;
+      document.getElementById('pageDate').textContent = `📅 ${new Date(page.date).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })}`;
+      document.getElementById('pageContent').innerHTML = page.content;
+      
+      listView.classList.remove('active');
+      pageView.classList.add('active');
+      window.scrollTo(0, 0);
+      
+      // Обновляем URL без перезагрузки
+      history.pushState({ slug }, '', `#${slug}`);
+    }
+    
+    // ===== ВОЗВРАТ К СПИСКУ =====
+    function showList() {
+      pageView.classList.remove('active');
+      listView.classList.add('active');
+      history.pushState({}, '', location.pathname);
+      searchInput.value = '';
+      searchResults.classList.remove('show');
+    }
+    
+    // ===== ПОИСК =====
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.trim();
+      
+      if (query.length < 2) {
+        searchResults.classList.remove('show');
+        renderList(pages);
+        return;
+      }
+      
+      const results = fuse.search(query).slice(0, 10);
+      const items = results.map(r => r.item);
+      
+      // Рендер выпадающих результатов
+      searchResults.innerHTML = items.map(page => `
+        <div class="result-item" data-slug="${page.slug}">
+          <div class="result-title">${highlightMatch(page.title, query)}</div>
+          <div class="result-meta">📁 ${page.category} • ${page.description}</div>
+        </div>
+      `).join('');
+      
+      searchResults.classList.add('show');
+      
+      // Клик по результату
+      searchResults.querySelectorAll('.result-item').forEach(item => {
+        item.onclick = () => {
+          openPage(item.dataset.slug);
+          searchResults.classList.remove('show');
+          searchInput.blur();
+        };
+      });
+    });
+    
+    // Скрыть поиск при клике вне
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.search-wrap')) {
+        searchResults.classList.remove('show');
+      }
+    });
+    
+    // ===== РОУТИНГ =====
+    function handleRoute() {
+      const slug = location.hash.slice(1);
+      if (slug && pages.some(p => p.slug === slug)) {
+        openPage(slug);
+      } else {
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+    
+    window.addEventListener('hashchange', handleRoute);
+    window.addEventListener('popstate', handleRoute);
+    
+    // ===== УТИЛИТЫ =====
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+    
+    function highlightMatch(text, query) {
+      const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      return text.replace(regex, '<mark style="background:rgba(88,166,255,0.3); padding:0 2px; border-radius:2px">$1</mark>');
+    }
+    
+    // ===== ЗАПУСК =====
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
